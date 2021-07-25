@@ -72,6 +72,7 @@ void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 void vTask( void *pvParameters );
+void vTaskFunction( void *pvParameters );
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -137,15 +138,16 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  strcpy(xTP1.string, "Task 1 is running");
-  xTP1.period = 1000;
-  /* Заполнение полей структуры, передаваемой Задаче 2 */
-  strcpy(xTP2.string, "Task 2 is running");
-  xTP2.period = 3000;
-  /* Создание Задачи 1. Передача ей в качестве параметра указателя на структуру xTP1 */
-  xTaskCreate( vTask, ( signed char * )"Task1", configMINIMAL_STACK_SIZE, (void*)&xTP1, 1, NULL);
-  /* Создание Задачи 2. Передача ей указателя на структуру xTP2 */
-  xTaskCreate( vTask, ( signed char * )"Task2", configMINIMAL_STACK_SIZE, (void*)&xTP2, 1, NULL );
+  xTaskCreate( vTaskFunction, ( signed char * )"Task1", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+//  strcpy(xTP1.string, "Task 1 is running");
+//  xTP1.period = 1000;
+//  /* Заполнение полей структуры, передаваемой Задаче 2 */
+//  strcpy(xTP2.string, "Task 2 is running");
+//  xTP2.period = 3000;
+//  /* Создание Задачи 1. Передача ей в качестве параметра указателя на структуру xTP1 */
+//  xTaskCreate( vTask, ( signed char * )"Task1", configMINIMAL_STACK_SIZE, (void*)&xTP1, 1, NULL);
+//  /* Создание Задачи 2. Передача ей указателя на структуру xTP2 */
+//  xTaskCreate( vTask, ( signed char * )"Task2", configMINIMAL_STACK_SIZE, (void*)&xTP2, 1, NULL );
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -391,6 +393,22 @@ int _write(int file, char *ptr, int len)
 	return len;
 }
 
+
+void vTaskFunction( void *pvParameters )
+{
+	/* Переменная, которая будет хранить значение счетчика квантов
+	в момент выхода задачи из блокированного состояния */
+	portTickType xLastWakeTime;
+	/* Переменная xLastWakeTime нуждается в инициализации текущим значением счетчика квантов.
+	Это единственный случай, когда ее значение задается явно.
+	В дальнейшем ее значение будет автоматически модифицироваться API-функцией vTaskDelayUntil(). */
+	xLastWakeTime = xTaskGetTickCount();
+	/* Бесконечный цикл */
+	for( ;; ){
+		printf("%ld \n",xLastWakeTime);
+		vTaskDelayUntil( &xLastWakeTime, ( 5000 / portTICK_RATE_MS ) );
+	}
+}
 void vTask( void *pvParameters )
 {
 	volatile long ul;
@@ -401,7 +419,7 @@ void vTask( void *pvParameters )
 		/* Вывести на экран строку, переданную в качестве параметра при создании задачи */
 		puts( (const char*)pxTaskParam->string );
 		/* Задержка на некоторый период Т2*/
-		osDelay(pxTaskParam->period);
+		vTaskDelay(pxTaskParam->period / portTICK_RATE_MS);
 	}
 	vTaskDelete( NULL );
 }
