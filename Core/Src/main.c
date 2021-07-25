@@ -28,11 +28,17 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+/* Структура, содержащая передаваемую в задачу информацию */
+typedef struct TaskParam_t {
+	char string[32]; /* строка */
+	long period; /* период */
+} TaskParam;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+/* Объявление двух структур TaskParam */
+TaskParam xTP1, xTP2;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -65,7 +71,7 @@ static void MX_USB_OTG_FS_PCD_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-
+void vTask( void *pvParameters );
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -131,7 +137,15 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  /* add threads, ... */
+  strcpy(xTP1.string, "Task 1 is running");
+  xTP1.period = 1000;
+  /* Заполнение полей структуры, передаваемой Задаче 2 */
+  strcpy(xTP2.string, "Task 2 is running");
+  xTP2.period = 3000;
+  /* Создание Задачи 1. Передача ей в качестве параметра указателя на структуру xTP1 */
+  xTaskCreate( vTask, ( signed char * )"Task1", configMINIMAL_STACK_SIZE, (void*)&xTP1, 1, NULL);
+  /* Создание Задачи 2. Передача ей указателя на структуру xTP2 */
+  xTaskCreate( vTask, ( signed char * )"Task2", configMINIMAL_STACK_SIZE, (void*)&xTP2, 1, NULL );
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -367,6 +381,31 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+int _write(int file, char *ptr, int len)
+{
+	int DataIdx;
+	for(DataIdx=0;DataIdx<len;DataIdx++)
+	{
+		ITM_SendChar(*ptr++);
+	}
+	return len;
+}
+
+void vTask( void *pvParameters )
+{
+	volatile long ul;
+	volatile TaskParam *pxTaskParam;
+	/* Преобразование типа void* к типу TaskParam* */
+	pxTaskParam = (TaskParam *) pvParameters;
+	for( ;; ){
+		/* Вывести на экран строку, переданную в качестве параметра при создании задачи */
+		puts( (const char*)pxTaskParam->string );
+		/* Задержка на некоторый период Т2*/
+		osDelay(pxTaskParam->period);
+	}
+	vTaskDelete( NULL );
+}
+
 
 /* USER CODE END 4 */
 
